@@ -1,0 +1,22 @@
+{
+    "transducerType": "focused_multirow",
+	"noElements": 128.0,
+	"noSubY": 25.1799,
+	"noSubX": 1.0,
+	"kerf": 0.02e-3,
+	"height": 0.007,
+	"elvFocus": 0.025,
+	"width": 0.278e-3,
+	"pitch": 2.9800e-4,
+	"Rfocus": 0.025,
+	"fractionalBandwidth": 70.0,
+	"impulseResponse":
+	{
+		"f0": 5200000.0,
+		"phase": 0.0,
+		"bw": 70.0,
+		"wavetype": "gaussian"
+	},
+	"noElementsY": 1.0,
+	"centerFrequency": 5.0e6
+}
