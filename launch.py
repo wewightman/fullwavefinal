@@ -1,8 +1,10 @@
 import numpy as np
+from string import Template
 import json
 import os
 
-workroot = "oop/"
+workroot = "/work/wew12/fullwave/"
+repodir = "/hpc/group/ultrasound/wew12/repos/"
 Nsteer = 11
 dtheta = 1.5*np.pi/180
 steer = dtheta*(np.arange(Nsteer) - (Nsteer-1)/2)
@@ -14,25 +16,43 @@ rots = np.pi*np.arange(Nrot)/Nrot
 rbuns = [250E-6, 500E-6, 1E-3, 2E-3]
 fracs = [0.45, 0.55]
 
+# default material properties
 matlegend = {
-    'mskin':1,
-    'mfat':2,
-    'mcon':3,
-    'mmusc':4,
-    'minter':5
+    'skin'  :1,
+    'fat'   :2,
+    'con'   :3,
+    'musc'  :4,
+    'inter' :5,
+    'params': {
+                # c,    rho,  alpha, b/a, sigma
+        'skin'  :[1615, 1090, 0.35,  7.9, 0.030],
+        'fat'   :[1465,  985, 0.40,  8.5, 0.010],
+        'musc'  :[1580, 1050, 0.74,  6.6, 0.001],
+        'con'   :[1613, 1120, 1.57,  0.0, 0.015],
+        'inter' :[1543, 1027, 0.069, 0.0, 0.001]
+    }
 }
 
+# default field selection parameters
+default_field = {
+    'rot':0, 
+    'seed':0, 
+    'ppw':16,
+    'c0':1540
+}
+
+# default model parameters
 default_model = {
-        'width':40E-3,
+        'width':50E-3,
         'tskin':1.5E-3,
-        'mskin':matlegend['mskin'],
+        'mskin':matlegend['skin'],
         'tfat':5E-3,
-        'mfat':matlegend['mfat'],
+        'mfat':matlegend['fat'],
         'tcon':1.5E-3,
-        'mcon':matlegend['mcon'],
+        'mcon':matlegend['con'],
         'tmusc':32E-3,
-        'mmusc':matlegend['mmusc'],
-        'minter':matlegend['minter'],
+        'mmusc':matlegend['musc'],
+        'minter':matlegend['inter'],
         'theta':tilts[0],
         'rbun':0.5E-3,
         'sigbun':0.1E-3,
@@ -47,6 +67,7 @@ def launch_matmaps():
     for seed in range(Nseed):
         seeddir = workroot + f"seed_{seed:d}/"
         default_model['seed'] = seed
+        default_field['seed'] = seed
         for tilt in tilts:
             tiltdir = seeddir + f"tilt_{180*tilt/np.pi:3.03f}/"
             default_model['theta'] = tilt
@@ -57,24 +78,30 @@ def launch_matmaps():
                     fracdir = bundir + f"frac_{100*frac:0.01f}/"
                     default_model['rfrac'] = frac
                     for rot in rots:
+                        default_field['rot'] = rot
                         rotdir = fracdir + f"rot_{180*rot/np.pi:3.03f}/"
                         if not os.path.exists(rotdir): os.makedirs(rotdir)
+                        os.chdir(rotdir)                        
 
-                        # save image plane selections parameters
-                        with open(rotdir+'sel_params.json', 'w') as f:
-                            json.dump({'rot':rot, 'seed':seed, 'ppw':16}, f)
+                        # save image plane selections parameters and recon parameters
+                        with open(rotdir+'field_params.json', 'w') as f:
+                            json.dump(default_field, f)
+
+                        # save material properties
+                        with open(rotdir+'matkey.json', 'w') as f:
+                            json.dump(matlegend, f)
 
                         # save parameter json
                         with open(rotdir + "model_params.json", 'w') as f:
                             json.dump(default_model, f)
                         
                         # copy scripts to directory
-                        command = f"cp prepostroutines.py {rotdir}\n"
-                        command +=  f"cp genfibers.py {rotdir}\n"
-                        command +=  f"cp muscleobjs.py {rotdir}\n"
-                        command +=  f"cp ./launch_matmap.sh {rotdir}\n"
-                        command +=  f"cp l74.json {rotdir}\n"
-                        command += f"sbatch {rotdir}launch_matmap.sh"
+                        command = f"cp {repodir}prepostroutines.py {rotdir}\n"
+                        command +=  f"cp {repodir}genfibers.py {rotdir}\n"
+                        command +=  f"cp {repodir}muscleobjs.py {rotdir}\n"
+                        command +=  f"cp {repodir}l74.json {rotdir}probe.json\n"
+                        command +=  f"cp {repodir}shellscripts/gen_matmap.sh {rotdir}\n"
+                        command += f"sbatch {rotdir}gen_matmap.sh"
                         os.system(command)
 
 

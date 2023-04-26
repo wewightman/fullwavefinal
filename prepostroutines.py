@@ -110,19 +110,77 @@ def prerout(seed: int, probefile="l74.json", ppw: int=16, rfat = 1.2E-3, sigfat 
     with open('params.json', 'w') as f:
         json.dump(params, f)
 
-def pre_genmap(sampparams='model_params.json', simparams="sel_params.json", probefile='l74.json'):
+def pre_genmatmap(sampparams='model_params.json', simparams="field_params.json", probefile='probe.json', matkey="matkey.json"):
+    logger.info("Loading probe file...")
     with open(probefile, 'r') as f:
         probe = json.load(f)
     
+    logger.info("Loading field file...")
     with open(simparams, 'r') as f:
         fieldparams = json.load(f)
 
+    logger.info("Loading sample parameter file...")
     with open(sampparams, 'r') as f:
         modelparams = json.load(f)
 
+    logger.info("Loading meterial key file...")
+    with open(matkey, 'r') as f:
+        matkeys = json.load(f)
+
+    logger.info("Generating sample set")
     set = mo.SampSet(**modelparams)
 
-    #TODO generate appropriate sampling points rotated about z axis
+    c0 = fieldparams['c0']
+    f0 = probe["centerFrequency"]
+    ppw = fieldparams['ppw']
+    rot = fieldparams['rot']
+    lam = c0/f0
+    Nx_half = int(np.ceil(ppw*(probe['pitch']*(probe['noElements']-1)/2)/lam))
+    Nx = 2*Nx_half+1
+    Nz = int(np.ceil(ppw*40E-3/lam))
+
+    logger.info("Generating field grid")
+    xmin = -Nx_half*lam/ppw
+    xmax = Nx_half*lam/ppw
+    x = np.linspace(xmin, xmax, Nx)
+
+    zmin = 0
+    zmax = Nz*lam/ppw
+    z = np.linspace(zmin, zmax, Nz)
+
+    y = 0
+
+    X, Y, Z = np.meshgrid(x, y, z)
+    points = np.array([X.flatten(), Y.flatten(), Z.flatten()])
+
+    logger.info("Rotating field grid")
+    T_rot = np.array(
+        [[np.cos(rot), -np.sin(rot), 0],
+         [np.sin(rot), np.cos(rot), 0],
+         [0, 0, 1]]
+    )
+    points = T_rot @ points
+
+    logger.info("Sampling material model")
+    model = set(points)
+
+    model[model == 0] = matkeys['inter']
+
+    logger.info(f"Save Map nx:{Nx}, nz:{Nz}")
+    model.astype(np.int8).tofile("map.bin")
+
+    params = {
+        'c0':c0,
+        'f0':f0,
+        'lam':lam,
+        'Nx':Nx,
+        'Nz':Nz,
+        'ppw':ppw,
+        'probe':probe
+    }
+
+    with open('matparams.json', 'w') as f:
+        json.dump(params, f)
 
 def postbeamform(filename='channels', savename = None, filepath='', c = 1540, extent = [-20E-3, 20E-3, 1.5E-3, 40E-3], dpx = [150E-6, 40E-6], fnum=1.5):
     with open(filepath + filename + ".json", 'r') as f:
