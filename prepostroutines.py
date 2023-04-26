@@ -1,5 +1,6 @@
 import numpy as np
 import genfibers as gf
+import muscleobjs as mo
 import bmfrmtrig as bft
 import json
 
@@ -7,7 +8,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
-
 
 def prerout(seed: int, probefile="l74.json", ppw: int=16, rfat = 1.2E-3, sigfat = 300E-6, rfib = 300E-6, sigfib = 100E-6, dz = 1000E-6, dzsig = 100E-6, nfib=120, nfat=1200):
     """Generate parameter files needed for fullwave simulation launched by matlab"""
@@ -109,6 +109,20 @@ def prerout(seed: int, probefile="l74.json", ppw: int=16, rfat = 1.2E-3, sigfat 
 
     with open('params.json', 'w') as f:
         json.dump(params, f)
+
+def pre_genmap(sampparams='model_params.json', simparams="sel_params.json", probefile='l74.json'):
+    with open(probefile, 'r') as f:
+        probe = json.load(f)
+    
+    with open(simparams, 'r') as f:
+        fieldparams = json.load(f)
+
+    with open(sampparams, 'r') as f:
+        modelparams = json.load(f)
+
+    set = mo.SampSet(**modelparams)
+
+    #TODO generate appropriate sampling points rotated about z axis
 
 def postbeamform(filename='channels', savename = None, filepath='', c = 1540, extent = [-20E-3, 20E-3, 1.5E-3, 40E-3], dpx = [150E-6, 40E-6], fnum=1.5):
     with open(filepath + filename + ".json", 'r') as f:

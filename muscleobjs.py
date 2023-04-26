@@ -89,12 +89,13 @@ class SampSet():
         }
         self.int = Slab(**intpar)
 
-        # generate muscel fibers within the xy grid (hex packed)
+        # generate muscle fibers within the xy grid (hex packed)
         rng = np.random.default_rng(seed)
         dx = (rbun+rfib)/(rfrac*np.cos(theta))
         dy = np.cos(np.pi/6)*(rbun+rfib)/rfrac
         l = (2*tcon + tmusc)/np.cos(theta)
-        xcoords = np.arange(-(width+l)/2, (width+l)/2, dx)
+        nx = int(np.ceil(((width+l)/2)/dx))
+        xcoords = dx * (np.arange(2*nx+1) - nx)#np.arange(-(width+l)/2, (width+l)/2, dx)
         xcoords += rng.normal(0, dx*sigfrac, len(xcoords))
         ycoords = np.arange(-(width+l)/2, (width+l)/2, dy)
         ycoords += rng.normal(0, dy*sigfrac, len(ycoords))
@@ -294,7 +295,7 @@ def test_samp():
     plt.colorbar()
 
     y = np.linspace(-20, 20, 256)
-    x = -6
+    x = 0
     z = np.linspace(0, 40, 256)
     X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
     points = np.array([X.flatten(), Y.flatten(), Z.flatten()])
