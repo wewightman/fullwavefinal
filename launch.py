@@ -158,6 +158,8 @@ def launch_beamform():
                             
                             command =  f"cp {repodir}shellscripts/sim_beamform.sh {steerdir}\n"
                             command += f"cp {repodir}prepostroutines.py {steerdir}\n"
+                            command += f"cp {repodir}genfibers.py {steerdir}\n"
+                            command += f"cp {repodir}muscleobjs.py {steerdir}\n"
                             command += f"sbatch {steerdir}sim_beamform.sh"
                             os.system(command)
 
