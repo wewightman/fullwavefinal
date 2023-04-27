@@ -137,4 +137,27 @@ def launch_simmaps():
                             command += f"sbatch {steerdir}sim_matmap.sh"
                             os.system(command)
 
+def launch_beamform():
+    # iterate through seed, fiber tilt angle, bundle radius, level of overlap, and rotation angle
+    for seed in range(Nseed):
+        seeddir = workroot + f"seed_{seed:d}/"
+        for tilt in tilts:
+            tiltdir = seeddir + f"tilt_{180*tilt/np.pi:3.03f}/"
+            for rbun in rbuns:
+                bundir = tiltdir + f"rfibmm_{1E3*rbun}/"
+                for frac in fracs:
+                    fracdir = bundir + f"frac_{100*frac:0.01f}/"
+                    for rot in rots:
+                        rotdir = fracdir + f"rot_{180*rot/np.pi:3.03f}/"
+                        for steer in steers:
+                            steerdir = rotdir + f"steer_{180*steer/np.pi:3.03f}/"
+                            if not os.path.exists(steerdir):
+                                print(f"{steerdir} doesnt exist... continuing...")
+                                continue
+                            os.chdir(steerdir)
+                            
+                            command +=  f"cp {repodir}shellscripts/sim_beamform.sh {steerdir}\n"
+                            command += f"sbatch {steerdir}sim_beamform.sh"
+                            os.system(command)
+
 

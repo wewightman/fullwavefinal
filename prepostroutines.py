@@ -245,3 +245,6 @@ def postbeamform(filename='channels', savename = None, filepath='', c = 1540, ex
     formed = bmfrm(data)
 
     formed.tofile(filepath + savename + ".bin")
+
+    with open(filepath + savename + ".json", 'w') as f:
+        json.dump({"nx":len(xgrid), "nz":len(zgrid), "c":c, "extent":extent}, f)
