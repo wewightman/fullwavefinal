@@ -15,15 +15,21 @@ command = sprintf("rm *.dat\nrm runit\ncp %s/try6_nomex runit", fwpath);
 system(command);
 %% Set up problem
 % read in parameter file and map
-mapparams = readjson('params.json');
+mapparams = readjson('matparams.json');
 
-matparams = [...
-    % speed of sound (m/s), density, attenuation @ 1MHz, Non-Linearity,
-    % fractional standard deviation
-    1465,  985, 0.40, 8.5, 0.010;...  % fatty tissue
-    1580, 1050, 0.74, 6.6, 0.001;...  % skeletal muscle
-    1613, 1120, 1.57, 0.0, 0.015;...  % connective tissue
-    ];
+% read in material parameters
+matkey = readjson('matkey.json');
+
+% read in imaging paramters
+imparams = readjson('impar.json');
+
+% matparams = [...
+%     % speed of sound (m/s), density, attenuation @ 1MHz, Non-Linearity,
+%     % fractional standard deviation
+%     1465,  985, 0.40, 8.5, 0.010;...  % fatty tissue
+%     1580, 1050, 0.74, 6.6, 0.001;...  % skeletal muscle
+%     1613, 1120, 1.57, 0.0, 0.015;...  % connective tissue
+%     ];
 
 %%% Basic variables %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 c0 = mapparams.c0;    % speed of sound (m/s)
@@ -36,7 +42,7 @@ p0 = 1e5; % pressure in Pa
 
 matmap = readmap('map.bin', nx, nz);
 %%
-theta = 8*pi/180;
+theta = imparams.theta;
 seed = 0;
 rng(seed);
 
@@ -59,14 +65,16 @@ rhomap = ones(nx, nz)*1000; % density map (kg/m^3)
 Amap = ones(nx, nz)*0.0;    % attenuation map (dB/MHz/cm)
 boveramap = -2*ones(nx, nz);    % nonlinearity map 
 
-%%
-% update maps
-for indkey = 1:3
-    Nmat = sum(matmap == indkey-1, "all");
-    cmap(matmap == indkey-1) = normrnd(matparams(indkey,1), matparams(indkey,1)*matparams(indkey,5));
-    rhomap(matmap == indkey-1) = normrnd(matparams(indkey,2), matparams(indkey,2)*matparams(indkey,5));
-    Amap(matmap == indkey-1) = normrnd(matparams(indkey,3), matparams(indkey,3)*matparams(indkey,5));
-    boveramap(matmap == indkey-1) = normrnd(matparams(indkey,4), matparams(indkey,4)*matparams(indkey,5));
+%% Import material models
+keys = ["skin", "fat", "con", "musc", "inter"];
+for key = keys
+    mask = matmap == matkey.(key);  % get mask number for this material
+    mparams = matkey.params.(key);  % get parameters for this material
+    N = sum(mask, "all");
+    cmap(mask)      = normrnd(mparams(1), mparams(1)*mparams(5), N,1);
+    rhomap(mask)    = normrnd(mparams(2), mparams(2)*mparams(5), N,1);
+    Amap(mask)      = normrnd(mparams(3), mparams(3)*mparams(5), N,1);
+    boveramap(mask) = normrnd(mparams(4), mparams(4)*mparams(5), N,1);
 end
 
 %%
@@ -110,17 +118,9 @@ toc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Dispaly results
-ncoordsout=size(outcoords,1)
-nRun=sizeOfFile('genout.dat')/4/ncoordsout
+ncoordsout=size(outcoords,1);
+nRun=sizeOfFile('genout.dat')/4/ncoordsout;
 genout = readGenoutSlice(['genout.dat'],0:nRun-1,size(outcoords,1));
-%%
-figure(1)
-clear figure(1)
-logged = 20*log10(abs(hilbert(genout')'));
-logged = logged - max(logged, [], "all");
-imagesc(logged)
-clim([-60, 0])
-colorbar
 
 %% convert to nele channel binary file
 dele = mapparams.probe.pitch;
@@ -134,20 +134,8 @@ for iele = 1:nele
     channels(:,iele) = sum(genout(:,indmin:indmax), 2);
 end
 
-figure(2)
-clear figure(2)
-logged = 20*log10(abs(hilbert(channels')'));
-logged = logged - max(logged, [], "all");
-imagesc(logged)
-clim([-60, 0])
-colorbar
 
-%%
-figure(3)
-clear figure(3)
-plot(channels(:,1:16:128))
-
-%%
+%% save channel data
 fileID = fopen('channels.bin','w');
 fwrite(fileID,channels,'double');
 fclose(fileID);

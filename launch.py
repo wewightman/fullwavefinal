@@ -4,10 +4,10 @@ import json
 import os
 
 workroot = "/work/wew12/fullwave/"
-repodir = "/hpc/group/ultrasound/wew12/repos/"
+repodir = "/hpc/group/ultrasound/wew12/repos/fullwavefinal/"
 Nsteer = 11
 dtheta = 1.5*np.pi/180
-steer = dtheta*(np.arange(Nsteer) - (Nsteer-1)/2)
+steers = dtheta*(np.arange(Nsteer) - (Nsteer-1)/2)
 tilts = np.pi*np.linspace(60, 80, 3)/180
 Nrot = 2
 Nseed = 1
@@ -103,5 +103,38 @@ def launch_matmaps():
                         command +=  f"cp {repodir}shellscripts/gen_matmap.sh {rotdir}\n"
                         command += f"sbatch {rotdir}gen_matmap.sh"
                         os.system(command)
+                        
+def launch_simmaps():
+    # iterate through seed, fiber tilt angle, bundle radius, level of overlap, and rotation angle
+    for seed in range(Nseed):
+        seeddir = workroot + f"seed_{seed:d}/"
+        for tilt in tilts:
+            tiltdir = seeddir + f"tilt_{180*tilt/np.pi:3.03f}/"
+            for rbun in rbuns:
+                bundir = tiltdir + f"rfibmm_{1E3*rbun}/"
+                for frac in fracs:
+                    fracdir = bundir + f"frac_{100*frac:0.01f}/"
+                    for rot in rots:
+                        rotdir = fracdir + f"rot_{180*rot/np.pi:3.03f}/"
+                        for steer in steers:
+                            steerdir = rotdir + f"steer_{180*steer/np.pi:3.03f}/"
+                            if not os.path.exists(steerdir): os.makedirs(steerdir)
+                            os.chdir(steerdir)
+                            
+                            # Save imaging parameters
+                            with open("impar.json", 'w') as f:
+                                json.dump({"theta":steer}, f)
+                            
+                            # copy scripts to directory
+                            command = f"cp {rotdir}matparams.json {steerdir}\n"
+                            command +=  f"cp {rotdir}matparams.json {steerdir}\n"
+                            command +=  f"cp {rotdir}map.bin {steerdir}\n"
+                            command +=  f"cp {rotdir}matkey.json {steerdir}\n"
+                            command +=  f"cp {repodir}readmap.m {steerdir}\n"
+                            command +=  f"cp {repodir}readjson.m {steerdir}\n"
+                            command +=  f"cp {repodir}runfullwave.m {steerdir}\n"
+                            command +=  f"cp {repodir}shellscripts/sim_matmap.sh {steerdir}\n"
+                            command += f"sbatch {steerdir}sim_matmap.sh"
+                            os.system(command)
 
 
