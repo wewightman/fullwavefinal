@@ -163,4 +163,34 @@ def launch_beamform():
                             command += f"sbatch {steerdir}sim_beamform.sh"
                             os.system(command)
 
-
+def copy_bf_2_datacommons():
+    dataroot = "/datacommons/ultrasound/wew12/fullwavefinal/"
+    # iterate through seed, fiber tilt angle, bundle radius, level of overlap, and rotation angle
+    for seed in range(Nseed):
+        seeddir = f"seed_{seed:d}/"
+        for tilt in tilts:
+            tiltdir = seeddir + f"tilt_{180*tilt/np.pi:3.03f}/"
+            for rbun in rbuns:
+                bundir = tiltdir + f"rfibmm_{1E3*rbun}/"
+                for frac in fracs:
+                    fracdir = bundir + f"frac_{100*frac:0.01f}/"
+                    for rot in rots:
+                        rotdir = fracdir + f"rot_{180*rot/np.pi:3.03f}/"
+                        if not os.path.exists(dataroot + rotdir): os.makedirs(dataroot + rotdir)
+                        command =   f"cp {workroot + rotdir}matparams.json {dataroot + rotdir}\n"
+                        command +=  f"cp {workroot + rotdir}map.bin {dataroot + rotdir}\n"
+                        command +=  f"cp {workroot + rotdir}matkey.json {dataroot + rotdir}\n"
+                        os.system(command)
+                        for steer in steers:
+                            steerdir = rotdir + f"steer_{180*steer/np.pi:3.03f}/"
+                            if not os.path.exists(workroot + steerdir):
+                                print(f"{steerdir} doesnt exist... continuing...")
+                                continue
+                            if not os.path.exists(dataroot + steerdir): os.makedirs(dataroot + steerdir)
+                            os.chdir(dataroot+steerdir)
+                            
+                            command =  f"cp {workroot + steerdir}channels.json {dataroot + steerdir}\n"
+                            command += f"cp {workroot + steerdir}channels.bin {dataroot + steerdir}\n"
+                            command += f"cp {workroot + steerdir}channels_bf.json {dataroot + steerdir}\n"
+                            command += f"cp {workroot + steerdir}channels_bf.bin {dataroot + steerdir}\n"
+                            os.system(command)
