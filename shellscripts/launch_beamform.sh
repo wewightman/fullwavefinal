@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --mem=8GB
 #SBATCH --partition=ultrasound
-#SBATCH -o /work/wew12/fullwave/launch_matmap.out
+#SBATCH -o /work/wew12/fullwave/launch_beamform.out
 #SBATCH --exclude=dcc-ultrasound-01
 #SBATCH --cpus-per-task=8
 #SBATCH --time=40:00:00
