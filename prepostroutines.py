@@ -182,7 +182,7 @@ def pre_genmatmap(sampparams='model_params.json', simparams="field_params.json",
     with open('matparams.json', 'w') as f:
         json.dump(params, f)
 
-def postbeamform(filename='channels', savename = None, filepath='', c = 1540, extent = [-20E-3, 20E-3, 1.5E-3, 40E-3], dpx = [150E-6, 40E-6], fnum=1.5):
+def postbeamform(filename='channels', savename = None, filepath='', c = 1540, extent = [-18E-3, 18E-3, 1.5E-3, 40E-3], dpx = [150E-6, 40E-6], fnum=1.5):
     with open(filepath + filename + ".json", 'r') as f:
         params = json.load(f)
     
